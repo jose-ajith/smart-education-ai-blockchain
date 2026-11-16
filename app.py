@@ -7,18 +7,24 @@ import time
 from sklearn.ensemble import RandomForestClassifier
 
 st.title("Smart Education: AI & Blockchain System")
-st.caption("Sahrdaya College of Advanced Studies | Simple Prototype")
+st.caption("Sahrdaya College of Advanced Studies | ICAIB 2026 Prototype")
 
 @st.cache_resource
 def get_ai_model():
     np.random.seed(42)
     n = 300
     df = pd.DataFrame({
-        "attendance": np.random.uniform(50, 100, n),
-        "study_hours": np.random.uniform(2, 15, n),
-        "score": np.random.uniform(40, 100, n)
+        "attendance": np.random.uniform(40, 100, n),
+        "study_hours": np.random.uniform(1, 15, n),
+        "score": np.random.uniform(30, 100, n)
     })
-    df["target"] = ((df["attendance"] * 0.4 + df["score"] * 0.6) < 65).astype(int)
+    # Realistic rule: Needs support if attendance < 60 OR study hours < 3 OR weighted index < 68
+    df["target"] = (
+        (df["attendance"] < 60) | 
+        (df["study_hours"] < 3) | 
+        ((df["attendance"] * 0.3 + df["study_hours"] * 1.5 + df["score"] * 0.55) < 68)
+    ).astype(int)
+    
     model = RandomForestClassifier(random_state=42)
     model.fit(df[["attendance", "study_hours", "score"]], df["target"])
     return model
@@ -49,17 +55,17 @@ def add_to_blockchain(record_data):
 
 st.subheader("Enter Student Details")
 student_id = st.text_input("Student Register ID", "EKAZBCA041")
-attendance = st.slider("Attendance (%)", 30.0, 100.0, 70.0)
-study_hours = st.slider("Weekly Study Hours", 1.0, 20.0, 5.0)
-score = st.slider("Assignment/Quiz Score", 20.0, 100.0, 55.0)
+attendance = st.slider("Attendance (%)", 20.0, 100.0, 30.0)
+study_hours = st.slider("Weekly Study Hours", 1.0, 20.0, 1.0)
+score = st.slider("Assignment/Quiz Score", 20.0, 100.0, 100.0)
 
 if st.button("Run AI Prediction & Save to Blockchain", type="primary"):
     input_df = pd.DataFrame([[attendance, study_hours, score]], columns=["attendance", "study_hours", "score"])
     prediction = ai_model.predict(input_df)[0]
-
+    
     status = "Needs Additional Support" if prediction == 1 else "On Track"
-    resource = "Remedial Tutorials & Practice Sheets" if prediction == 1 else "Advanced Learning Modules"
-
+    resource = "Remedial Attendance Plan & Tutoring" if prediction == 1 else "Advanced Learning Modules"
+    
     student_record = {
         "student_id": student_id,
         "metrics": {"attendance": attendance, "study_hours": study_hours, "score": score},
@@ -67,12 +73,12 @@ if st.button("Run AI Prediction & Save to Blockchain", type="primary"):
         "recommendation": resource
     }
     add_to_blockchain(student_record)
-
+    
     if prediction == 1:
         st.warning(f"AI Status: **{status}**")
     else:
         st.success(f"AI Status: **{status}**")
-
+    
     st.write(f"**Recommended Resource:** {resource}")
     st.info("Record securely hashed and appended to the Blockchain ledger!")
 
